@@ -21,7 +21,7 @@ Device_Clearance = 0.1; //0.1
 // Thickness of bracket supporting the device. (Adjust higher if more strength needed)
 Wall_Depth = 2.0; //0.1
 // Coverage of device sides. (Adjust higher if more strength needed)
-Wall_Width = 10;
+Wall_Width = 8;
 Base_Thickness = 0.8; //0.1
 Corner_Rounding = 2;
 // Gap around the base; gives room between grid tiles.
@@ -180,8 +180,8 @@ module base() {
 }
 
 module wall() {
-  x_pos = (Device_Length / 2) - (Wall_Depth / 2) + Device_Clearance;
-  y_pos = (Device_Width / 2) - (Wall_Depth / 2) + Device_Clearance;
+  x_pos = (Device_Length / 2) - (Wall_Width / 2) + Device_Clearance + Wall_Depth;
+  y_pos = (Device_Width / 2) - (Wall_Width / 2) + Device_Clearance + Wall_Depth;
   translate([x_pos, y_pos, Snap_Thickness + Base_Thickness]) {
     cuboid([Wall_Width, Wall_Width, Device_Height + Device_Clearance], rounding=Corner_Rounding, edges="Z", anchor=BOTTOM);
   }
