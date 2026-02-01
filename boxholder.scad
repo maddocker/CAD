@@ -14,17 +14,19 @@ The openGrid system is created by David D. https://www.printables.com/model/1214
 include <BOSL2/std.scad>
 include <BOSL2/rounding.scad>
 
-Device_Length = 105.5; //0.1
-Device_Width = 105.5; //0.1
-Device_Height = 25.0; //0.1
-Device_Clearance = 0.1; //0.1
+Device_Length = 105.5; // [20:0.1:280]
+Device_Width = 105.5; // [20:0.1:280]
+Device_Height = 25.0; // [10:0.1:100]
 // Thickness of bracket supporting the device. (Adjust higher if more strength needed)
-Wall_Depth = 2.0; //0.1
-// Coverage of device sides. (Adjust higher if more strength needed)
-Wall_Width = 8;
-Base_Thickness = 0.8; //0.1
+Wall_Depth = 2.4; //0.1
+// Coverage of device sides is equal to this width minus depth. Adjust higher if more strength needed, but make sure any ports or extrusions are not in the way.
+Wall_Width = 8; // [4:0.1:14]
+
+/* [Fine-Tuning] */
+Base_Thickness = 1.2; //0.1
 Corner_Rounding = 2;
-// Gap around the base; gives room between grid tiles.
+Device_Clearance = 0.2; //0.1
+// Gap around the base platform; gives room between grid tiles.
 Base_Clearance = 0.1; //0.1
 
 /* [openGrid Settings] */
@@ -41,11 +43,6 @@ snap_corner_edge_height = 1.5;
 snap_body_top_corner_extrude = 1.1;
 snap_body_bottom_corner_extrude = 0.6;
 
-directional_slant_depth_standard = 0.8;
-directional_slant_depth_lite = 0.2;
-directional_corner_fillet_radius = 1.5;
-directional_arrow_depth = 0.2;
-
 /* [Snap Nub Settings] */
 basic_nub_width = 10.8;
 basic_nub_height_standard = 2; //0.1
@@ -55,19 +52,6 @@ basic_nub_top_width = 6.8;
 basic_nub_top_angle = 35;
 basic_nub_bottom_angle = 35;
 basic_nub_fillet_radius = 15;
-
-directional_nub_width = 14.8; //0.1
-directional_nub_height_standard = 4; //0.1
-directional_nub_height_lite = 2.4;
-directional_nub_depth = 0.8;
-directional_nub_top_width = 13.2; //0.1
-directional_nub_top_angle = 35;
-directional_nub_bottom_angle_standard = 35;
-directional_nub_bottom_angle_lite = 45;
-directional_nub_fillet_radius = 2.8;
-
-antidirect_nub_height_standard = 2; //0.1
-antidirect_nub_height_lite = 1.4; //0.1
 
 nub_offset_to_top = 1.4; //0.1
 
@@ -93,15 +77,6 @@ snap_body_corner_chamfer = snap_body_corner_outer_diagonal * sqrt(2);
 basic_nub_height =
   Snap_Thickness == 6.8 ? basic_nub_height_standard
   : basic_nub_height_lite;
-directional_nub_height =
-  Snap_Thickness == 6.8 ? directional_nub_height_standard
-  : directional_nub_height_lite;
-antidirect_nub_height =
-  Snap_Thickness == 6.8 ? antidirect_nub_height_standard
-  : antidirect_nub_height_lite;
-directional_nub_bottom_angle =
-  Snap_Thickness == 6.8 ? directional_nub_bottom_angle_standard
-  : directional_nub_bottom_angle_lite;
 
 corner_anchors = [FRONT + LEFT, FRONT + RIGHT, BACK + LEFT, BACK + RIGHT];
 side_anchors = [FRONT, LEFT, RIGHT, BACK];
@@ -137,13 +112,7 @@ module snap_nub() {
   basic_nub_size1 = [basic_nub_width, basic_nub_height];
   basic_nub_size2 = [basic_nub_top_width, undef];
 
-  directional_nub_size1 = [directional_nub_width, directional_nub_height];
-  directional_nub_size2 = [directional_nub_top_width, undef];
-
-  antidirect_nub_size1 = [basic_nub_width, antidirect_nub_height];
-
   basic_nub_yang = [basic_nub_top_angle, basic_nub_bottom_angle];
-  directional_nub_yang = [directional_nub_top_angle, directional_nub_bottom_angle];
 
   for (i = side_anchors) {
     up(nub_offset_to_top) attach(i, BOTTOM, align=BOTTOM, shiftout=-eps)
@@ -183,7 +152,7 @@ module wall() {
   x_pos = (Device_Length / 2) - (Wall_Width / 2) + Device_Clearance + Wall_Depth;
   y_pos = (Device_Width / 2) - (Wall_Width / 2) + Device_Clearance + Wall_Depth;
   translate([x_pos, y_pos, Snap_Thickness + Base_Thickness]) {
-    cuboid([Wall_Width, Wall_Width, Device_Height + Device_Clearance], rounding=Corner_Rounding, edges="Z", anchor=BOTTOM);
+    cuboid([Wall_Width, Wall_Width, Device_Height + Device_Clearance], rounding=Corner_Rounding, edges=BACK+RIGHT, anchor=BOTTOM);
   }
 }
 
