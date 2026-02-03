@@ -160,7 +160,7 @@ module base() {
 module wall() {
   x_pos = (Device_Length / 2) - (Wall_Width / 2) + Device_Tolerance + Wall_Depth;
   y_pos = (Device_Width / 2) - (Wall_Width / 2) + Device_Tolerance + Wall_Depth;
-  translate([x_pos, y_pos, Snap_Thickness + Base_Thickness]) {
+  translate([x_pos, y_pos, Snap_Thickness + Base_Thickness + Base_Clearance]) {
     cuboid([Wall_Width, Wall_Width, Device_Height + Device_Tolerance + Base_Clearance], rounding=Corner_Rounding, edges=BACK+RIGHT, anchor=BOTTOM);
   }
 }
