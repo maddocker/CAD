@@ -18,16 +18,16 @@ Device_Length = 105.5; // [20:0.1:280]
 Device_Width = 105.5; // [20:0.1:280]
 Device_Height = 25.0; // [10:0.1:100]
 // Thickness of bracket supporting the device. (Adjust higher if more strength needed)
-Wall_Depth = 2.4; //0.1
+Wall_Depth = 2.8; //0.1
 // Coverage of device sides is equal to this width minus depth. Adjust higher if more strength needed, but make sure any ports or extrusions are not in the way.
 Wall_Width = 8; // [4:0.1:14]
 
 /* [Fine-Tuning] */
-Base_Thickness = 1.2; //0.1
+Base_Thickness = 2.6; //0.1
 Corner_Rounding = 2;
-Device_Clearance = 0.2; //0.1
+Device_Tolerance = 0.2; //0.1
 // Gap around the base platform; gives room between grid tiles.
-Base_Clearance = 0.1; //0.1
+Base_Clearance = 0.2; //0.1
 
 /* [openGrid Settings] */
 Tile_Size = 28;
@@ -143,23 +143,32 @@ module snap() {
 }
 
 module base() {
-  up(Snap_Thickness) {
-    cuboid([Tile_Size - Base_Clearance, Tile_Size - Base_Clearance, Base_Thickness], rounding=Corner_Rounding, edges="Z", anchor=BOTTOM);
+  hull() {
+    up(Snap_Thickness + Base_Thickness) {
+      cuboid([Tile_Size - Base_Clearance, Tile_Size - Base_Clearance, Base_Clearance], rounding=Corner_Rounding, edges="Z", anchor=BOTTOM);
+    }
+    up(Snap_Thickness) {
+      linear_extrude(height = Base_Clearance) {
+        projection() {
+          snap();
+        }
+      }
+    }
   }
 }
 
 module wall() {
-  x_pos = (Device_Length / 2) - (Wall_Width / 2) + Device_Clearance + Wall_Depth;
-  y_pos = (Device_Width / 2) - (Wall_Width / 2) + Device_Clearance + Wall_Depth;
+  x_pos = (Device_Length / 2) - (Wall_Width / 2) + Device_Tolerance + Wall_Depth;
+  y_pos = (Device_Width / 2) - (Wall_Width / 2) + Device_Tolerance + Wall_Depth;
   translate([x_pos, y_pos, Snap_Thickness + Base_Thickness]) {
-    cuboid([Wall_Width, Wall_Width, Device_Height + Device_Clearance], rounding=Corner_Rounding, edges=BACK+RIGHT, anchor=BOTTOM);
+    cuboid([Wall_Width, Wall_Width, Device_Height + Device_Tolerance + Base_Clearance], rounding=Corner_Rounding, edges=BACK+RIGHT, anchor=BOTTOM);
   }
 }
 
 module cap() {
-  x_pos = (Device_Length * 3 / 8) + Wall_Depth + Device_Clearance;
-  y_pos = (Device_Width * 3 / 8) + Wall_Depth + Device_Clearance;
-  translate([x_pos, y_pos, Snap_Thickness + Base_Thickness + Device_Height + Device_Clearance]) {
+  x_pos = (Device_Length * 3 / 8) + Wall_Depth + Device_Tolerance;
+  y_pos = (Device_Width * 3 / 8) + Wall_Depth + Device_Tolerance;
+  translate([x_pos, y_pos, Snap_Thickness + Base_Thickness + Base_Clearance + Device_Height + Device_Tolerance]) {
     cuboid([Device_Length / 4, Device_Width / 4, Wall_Depth], rounding=Corner_Rounding, edges="Z", anchor=BOTTOM);
   }
 }
@@ -194,8 +203,8 @@ module all_brackets() {
 }
 
 module device() {
-  up(Snap_Thickness + Base_Thickness) {
-    cuboid([Device_Length + Device_Clearance, Device_Width + Device_Clearance, Device_Height + Device_Clearance], anchor=BOTTOM);
+  up(Snap_Thickness + Base_Thickness + Base_Clearance) {
+    cuboid([Device_Length + Device_Tolerance, Device_Width + Device_Tolerance, Device_Height + Device_Tolerance], anchor=BOTTOM);
   }
 }
 
