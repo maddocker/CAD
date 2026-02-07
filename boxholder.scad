@@ -18,14 +18,16 @@ Device_Length = 105.5; // [20:0.1:280]
 Device_Width = 105.5; // [20:0.1:280]
 Device_Height = 25.0; // [10:0.1:100]
 // Thickness of bracket supporting the device. (Adjust higher if more strength needed)
-Wall_Depth = 2.8; //0.1
+Wall_Depth = 2.4; //0.1
 // Coverage of device sides is equal to this width minus depth. Adjust higher if more strength needed, but make sure any ports or extrusions are not in the way.
 Wall_Width = 8; // [4:0.1:14]
+// Round/fillet the bottom inside corners of each wall. This adds strength, but can be decreased to zero if you need a true corner for the bottom edges of your device (and consider increasing wall depth in an increment or two of your printer's nozzle diameter).
+Inside_Corner_Rounding = 2; //0.1
 
 /* [Fine-Tuning] */
 Base_Thickness = 2.6; //0.1
-Corner_Rounding = 2;
-Device_Tolerance = 0.2; //0.1
+Outside_Corner_Rounding = 2; //0.1
+Device_Tolerance = 0.4; //0.1
 // Gap around the base platform; gives room between grid tiles.
 Base_Clearance = 0.2; //0.1
 
@@ -66,8 +68,8 @@ side_cut_depth = 0.8; //0.1
 side_cut_offset_to_top = 0.8; //0.1
 
 /* [Hidden] */
-$fa = 1;
-$fs = 0.4;
+$fa = 0.1;
+$fs = 0.1;
 eps = 0.005;
 
 snap_body_corner_outer_diagonal = 2.7 + 1 / sqrt(2);
@@ -145,7 +147,7 @@ module snap() {
 module base() {
   hull() {
     up(Snap_Thickness + Base_Thickness) {
-      cuboid([Tile_Size - Base_Clearance, Tile_Size - Base_Clearance, Base_Clearance], rounding=Corner_Rounding, edges="Z", anchor=BOTTOM);
+      cuboid([Tile_Size - Base_Clearance, Tile_Size - Base_Clearance, Base_Clearance], rounding=Outside_Corner_Rounding, edges="Z", anchor=BOTTOM);
     }
     up(Snap_Thickness) {
       linear_extrude(height = Base_Clearance) {
@@ -161,7 +163,15 @@ module wall() {
   x_pos = (Device_Length / 2) - (Wall_Width / 2) + Device_Tolerance + Wall_Depth;
   y_pos = (Device_Width / 2) - (Wall_Width / 2) + Device_Tolerance + Wall_Depth;
   translate([x_pos, y_pos, Snap_Thickness + Base_Thickness + Base_Clearance]) {
-    cuboid([Wall_Width, Wall_Width, Device_Height + Device_Tolerance + Base_Clearance], rounding=Corner_Rounding, edges=BACK+RIGHT, anchor=BOTTOM);
+    diff()
+    cuboid(
+      [Wall_Width, Wall_Width, Device_Height + Device_Tolerance],
+      rounding=-Inside_Corner_Rounding,
+      edges=[BOTTOM+FRONT, BOTTOM+LEFT, TOP+FRONT, TOP+LEFT],
+      anchor=BOTTOM
+    )
+    edge_profile(BACK+RIGHT)
+    mask2d_roundover(Outside_Corner_Rounding);
   }
 }
 
@@ -169,7 +179,12 @@ module cap() {
   x_pos = (Device_Length * 3 / 8) + Wall_Depth + Device_Tolerance;
   y_pos = (Device_Width * 3 / 8) + Wall_Depth + Device_Tolerance;
   translate([x_pos, y_pos, Snap_Thickness + Base_Thickness + Base_Clearance + Device_Height + Device_Tolerance]) {
-    cuboid([Device_Length / 4, Device_Width / 4, Wall_Depth], rounding=Corner_Rounding, edges="Z", anchor=BOTTOM);
+    cuboid(
+      [Device_Length / 4, Device_Width / 4, Wall_Depth],
+      rounding=Outside_Corner_Rounding,
+      edges="Z",
+      anchor=BOTTOM
+    );
   }
 }
 
@@ -204,7 +219,12 @@ module all_brackets() {
 
 module device() {
   up(Snap_Thickness + Base_Thickness + Base_Clearance) {
-    cuboid([Device_Length + Device_Tolerance, Device_Width + Device_Tolerance, Device_Height + Device_Tolerance], anchor=BOTTOM);
+    cuboid(
+      [Device_Length + Device_Tolerance, Device_Width + Device_Tolerance, Device_Height + Device_Tolerance],
+      rounding=Inside_Corner_Rounding,
+      edges=[BOTTOM, "Z"],
+      anchor=BOTTOM
+    );
   }
 }
 
