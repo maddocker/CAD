@@ -1,4 +1,4 @@
-/* 
+/*
 Licensed Creative Commons Attribution-ShareAlike 4.0 International
 
 Parametric Box Holder for openGrid: created by maddocker. https://github.com/maddocker
@@ -9,6 +9,8 @@ Inspired by BlackjackDuck's work here: https://github.com/AndyLevesque/QuackWork
 and Jan's work here: https://github.com/jp-embedded/opengrid
 
 The openGrid system is created by David D. https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem
+
+Cap configurability added by edwardtfn.
 */
 
 include <BOSL2/std.scad>
@@ -21,6 +23,23 @@ Device_Height = 25.0; // [10:0.1:100]
 Wall_Depth = 2.4; //0.1
 // Coverage of device sides is equal to this width minus depth. Increase if more strength needed, but make sure any ports or extrusions are not in the way.
 Wall_Width = 8; // [4:0.1:14]
+
+/* [Cap Settings] */
+// Shape of the cap on top of the device.
+// Full = solid square (original), L-shape = two lips forming an L,
+// X-lip = lip along device length only, Y-lip = lip along device width only.
+Cap_Style = "Full"; // [Full, L-shape, X-lip, Y-lip]
+// Size of the cap along the length axis (X), as a percentage of device length. 25% = original behavior. Note: visible coverage will be less due to the device cutout.
+Cap_Length_Coverage = 25; // [0:0.1:50]
+// Size of the cap along the width axis (Y), as a percentage of device width. 25% = original behavior. Note: visible coverage will be less due to the device cutout.
+Cap_Width_Coverage = 25; // [0:0.1:50]
+// Thickness of the cap lips when using L-shape, X-lip, or Y-lip styles. Minimum matches Wall_Depth.
+Cap_Lip_Width = 2.4; // [2.4:0.1:8]
+// Enable/disable caps on each corner: [Front-Left, Front-Right, Back-Left, Back-Right]
+Cap_Front_Left = true;
+Cap_Front_Right = true;
+Cap_Back_Left = true;
+Cap_Back_Right = true;
 
 /* [Fine-Tuning] */
 // Round/fillet the base-to-wall and wall-to-cap corner joins, perpendicular to the wall. Decrease if your device has perfect corners on the top and bottom, and you want a tight fit.
@@ -77,13 +96,20 @@ eps = 0.005;
 snap_body_corner_outer_diagonal = 2.7 + 1 / sqrt(2);
 snap_body_corner_chamfer = snap_body_corner_outer_diagonal * sqrt(2);
 
-//nub paramters
+// Nub height depends on snap thickness variant
 basic_nub_height =
   Snap_Thickness == 6.8 ? basic_nub_height_standard
   : basic_nub_height_lite;
 
 corner_anchors = [FRONT + LEFT, FRONT + RIGHT, BACK + LEFT, BACK + RIGHT];
 side_anchors = [FRONT, LEFT, RIGHT, BACK];
+
+// Computed cap dimensions (convert percentage to fraction)
+cap_x_size = Device_Length * (Cap_Length_Coverage / 100);
+cap_y_size = Device_Width * (Cap_Width_Coverage / 100);
+
+// Enforce cap lip width >= wall depth
+cap_lip_width = max(Cap_Lip_Width, Wall_Depth);
 
 module snap_shape(anchor = CENTER, spin = 0, orient = UP) {
   attachable(anchor, spin, orient, size=[snap_body_width, snap_body_width, Snap_Thickness]) {
@@ -112,6 +138,7 @@ module snap_cut() {
         cuboid([back_cut_length, side_cut_depth, side_cut_thickness]);
   }
 }
+
 module snap_nub() {
   basic_nub_size1 = [basic_nub_width, basic_nub_height];
   basic_nub_size2 = [basic_nub_top_width, undef];
@@ -126,7 +153,7 @@ module snap_nub() {
                 rounding_edge_mask(l=8, r=basic_nub_fillet_radius, $fn=64);
         }
   }
-  //cut off excess nub parts
+  // Cut off excess nub parts
   down(eps / 2) tag("remove") attach(TOP, TOP) cuboid(30);
 }
 
@@ -177,23 +204,78 @@ module wall() {
   }
 }
 
-module cap() {
-  x_pos = (Device_Length * 3 / 8) + Wall_Depth + Device_Tolerance;
-  y_pos = (Device_Width * 3 / 8) + Wall_Depth + Device_Tolerance;
-  translate([x_pos, y_pos, Snap_Thickness + Base_Thickness + Base_Clearance + Device_Height + Device_Tolerance]) {
-    cuboid(
-      [Device_Length / 4, Device_Width / 4, Wall_Depth],
-      rounding=Outside_Vertical_Corner_Rounding,
-      edges="Z",
-      anchor=BOTTOM
-    );
-  }
+// Configurable cap module using computed cap dimensions.
+// Draws the cap at the +X, +Y corner; mirrors handle the other corners.
+// Cap_Style controls the fill:
+//   "Full"    = solid rectangle (original behavior)
+//   "L-shape" = two perpendicular lips forming an L
+//   "X-lip"   = single lip along the X (length) axis
+//   "Y-lip"   = single lip along the Y (width) axis
+// Parameters:
+//   cap_x - size of the cap along the X axis
+//   cap_y - size of the cap along the Y axis
+module cap(cap_x = cap_x_size, cap_y = cap_y_size) {
+  cap_z = Snap_Thickness + Base_Thickness + Base_Clearance + Device_Height + Device_Tolerance;
+
+  if (Cap_Style == "Full") {
+    // Solid rectangle cap (original behavior)
+    full_rounding = min(Outside_Vertical_Corner_Rounding, cap_x / 2, cap_y / 2);
+    x_pos = (Device_Length / 2) - (cap_x / 2) + Wall_Depth + Device_Tolerance;
+    y_pos = (Device_Width / 2) - (cap_y / 2) + Wall_Depth + Device_Tolerance;
+    translate([x_pos, y_pos, cap_z]) {
+      cuboid(
+        [cap_x, cap_y, Wall_Depth],
+        rounding=full_rounding,
+        edges="Z",
+        anchor=BOTTOM
+      );
+    }
+  } // end "Full"
+
+  if (Cap_Style == "L-shape" || Cap_Style == "X-lip") {
+    // Lip running along the X axis (outer edge of device width).
+    // In L-shape mode, extend Y slightly (+eps) to overlap with the Y-lip
+    // and prevent non-manifold geometry at the corner junction.
+    x_lip_y = cap_lip_width + (Cap_Style == "L-shape" ? eps : 0);
+    x_lip_rounding = min(Outside_Vertical_Corner_Rounding, cap_x / 2, x_lip_y / 2);
+    x_pos = (Device_Length / 2) - (cap_x / 2) + Wall_Depth + Device_Tolerance;
+    y_pos = (Device_Width / 2) - (x_lip_y / 2) + Wall_Depth + Device_Tolerance;
+    translate([x_pos, y_pos, cap_z]) {
+      cuboid(
+        [cap_x, x_lip_y, Wall_Depth],
+        rounding=x_lip_rounding,
+        edges="Z",
+        anchor=BOTTOM
+      );
+    }
+  } // end X-lip
+
+  if (Cap_Style == "L-shape" || Cap_Style == "Y-lip") {
+    // Lip running along the Y axis (outer edge of device length).
+    // In L-shape mode, extend X slightly (+eps) to overlap with the X-lip
+    // and prevent non-manifold geometry at the corner junction.
+    y_lip_x = cap_lip_width + (Cap_Style == "L-shape" ? eps : 0);
+    y_lip_rounding = min(Outside_Vertical_Corner_Rounding, y_lip_x / 2, cap_y / 2);
+    x_pos = (Device_Length / 2) - (y_lip_x / 2) + Wall_Depth + Device_Tolerance;
+    y_pos = (Device_Width / 2) - (cap_y / 2) + Wall_Depth + Device_Tolerance;
+    translate([x_pos, y_pos, cap_z]) {
+      cuboid(
+        [y_lip_x, cap_y, Wall_Depth],
+        rounding=y_lip_rounding,
+        edges="Z",
+        anchor=BOTTOM
+      );
+    }
+  } // end Y-lip
 }
 
-module single_bracket() {
+// Single bracket at the +X, +Y corner (wall + optional cap)
+module single_bracket(enable_cap = true) {
   union() {
     wall();
-    cap();
+    if (enable_cap) {
+      cap();
+    }
   }
 }
 
@@ -211,11 +293,30 @@ module ymirror_copy() {
   }
 }
 
+// All four brackets with per-corner cap enable/disable.
+// The base corner is +X, +Y (Front-Right when viewed from above).
+// Mirrors produce the other three corners.
 module all_brackets() {
-  ymirror_copy() {
-    xmirror_copy() {
-      single_bracket();
-    }
+  // +X, +Y corner (Front-Right)
+  if (Cap_Front_Right)  single_bracket(enable_cap = true);
+  if (!Cap_Front_Right) single_bracket(enable_cap = false);
+
+  // -X, +Y corner (Front-Left)
+  mirror([1, 0, 0]) {
+    if (Cap_Front_Left)  single_bracket(enable_cap = true);
+    if (!Cap_Front_Left) single_bracket(enable_cap = false);
+  }
+
+  // +X, -Y corner (Back-Right)
+  mirror([0, 1, 0]) {
+    if (Cap_Back_Right)  single_bracket(enable_cap = true);
+    if (!Cap_Back_Right) single_bracket(enable_cap = false);
+  }
+
+  // -X, -Y corner (Back-Left)
+  mirror([1, 0, 0]) mirror([0, 1, 0]) {
+    if (Cap_Back_Left)  single_bracket(enable_cap = true);
+    if (!Cap_Back_Left) single_bracket(enable_cap = false);
   }
 }
 
@@ -230,8 +331,8 @@ module device() {
 }
 
 module grid(x_length, y_length) {
-  // Draw all grid tiles within dimensions, but only corners as solid parts
-  // After drawing, shift grid to center on origin
+  // Draw all grid tiles within dimensions, but only corners as solid parts.
+  // After drawing, shift grid to center on origin.
   translate([-(x_length * Tile_Size) / 2, -(y_length * Tile_Size) / 2, 0]) {
     for (x = [0 : x_length - 1]) {
       for (y = [0 : y_length - 1]) {
