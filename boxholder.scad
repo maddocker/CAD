@@ -233,13 +233,16 @@ module cap(cap_x = cap_x_size, cap_y = cap_y_size) {
   } // end "Full"
 
   if (Cap_Style == "L-shape" || Cap_Style == "X-lip") {
-    // Lip running along the X axis (outer edge of device width)
-    x_lip_rounding = min(Outside_Vertical_Corner_Rounding, cap_x / 2, cap_lip_width / 2);
+    // Lip running along the X axis (outer edge of device width).
+    // In L-shape mode, extend Y slightly (+eps) to overlap with the Y-lip
+    // and prevent non-manifold geometry at the corner junction.
+    x_lip_y = cap_lip_width + (Cap_Style == "L-shape" ? eps : 0);
+    x_lip_rounding = min(Outside_Vertical_Corner_Rounding, cap_x / 2, x_lip_y / 2);
     x_pos = (Device_Length / 2) - (cap_x / 2) + Wall_Depth + Device_Tolerance;
-    y_pos = (Device_Width / 2) - (cap_lip_width / 2) + Wall_Depth + Device_Tolerance;
+    y_pos = (Device_Width / 2) - (x_lip_y / 2) + Wall_Depth + Device_Tolerance;
     translate([x_pos, y_pos, cap_z]) {
       cuboid(
-        [cap_x, cap_lip_width, Wall_Depth],
+        [cap_x, x_lip_y, Wall_Depth],
         rounding=x_lip_rounding,
         edges="Z",
         anchor=BOTTOM
@@ -248,13 +251,16 @@ module cap(cap_x = cap_x_size, cap_y = cap_y_size) {
   } // end X-lip
 
   if (Cap_Style == "L-shape" || Cap_Style == "Y-lip") {
-    // Lip running along the Y axis (outer edge of device length)
-    y_lip_rounding = min(Outside_Vertical_Corner_Rounding, cap_lip_width / 2, cap_y / 2);
-    x_pos = (Device_Length / 2) - (cap_lip_width / 2) + Wall_Depth + Device_Tolerance;
+    // Lip running along the Y axis (outer edge of device length).
+    // In L-shape mode, extend X slightly (+eps) to overlap with the X-lip
+    // and prevent non-manifold geometry at the corner junction.
+    y_lip_x = cap_lip_width + (Cap_Style == "L-shape" ? eps : 0);
+    y_lip_rounding = min(Outside_Vertical_Corner_Rounding, y_lip_x / 2, cap_y / 2);
+    x_pos = (Device_Length / 2) - (y_lip_x / 2) + Wall_Depth + Device_Tolerance;
     y_pos = (Device_Width / 2) - (cap_y / 2) + Wall_Depth + Device_Tolerance;
     translate([x_pos, y_pos, cap_z]) {
       cuboid(
-        [cap_lip_width, cap_y, Wall_Depth],
+        [y_lip_x, cap_y, Wall_Depth],
         rounding=y_lip_rounding,
         edges="Z",
         anchor=BOTTOM
