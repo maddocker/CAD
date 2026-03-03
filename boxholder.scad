@@ -14,13 +14,13 @@ The openGrid system is created by David D. https://www.printables.com/model/1214
 include <BOSL2/std.scad>
 include <BOSL2/rounding.scad>
 
-Device_Length = 105.5; // [20:0.1:280]
-Device_Width = 105.5; // [20:0.1:280]
+Device_Length = 105.5; // [20:0.1:460]
+Device_Width = 105.5; // [20:0.1:460]
 Device_Height = 25.0; // [10:0.1:100]
 // Thickness of bracket supporting the device. (Adjust higher if more strength needed)
-Wall_Depth = 2.4; //0.1
+Wall_Depth = 2.4; // [1.6:0.1:5.6]
 // Coverage of device sides is equal to this width minus depth. Increase if more strength needed, but make sure any ports or extrusions are not in the way.
-Wall_Width = 8; // [4:0.1:14]
+Wall_Width = 8; // [4:0.1:12]
 
 /* [Fine-Tuning] */
 // Round/fillet the base-to-wall and wall-to-cap corner joins, perpendicular to the wall. Decrease if your device has perfect corners on the top and bottom, and you want a tight fit.
@@ -32,6 +32,7 @@ Base_Thickness = 2.6; //0.1
 // Gap around the base platform; gives room between grid tiles.
 Base_Clearance = 0.2; //0.1
 Device_Tolerance = 0.8; //0.1
+Max_Cap_Length = 35; // [10:0.1:75] The maximum length of the cap piece covering the top of the device. The actual length along each axis (X/Y) will be the lesser value between this and a quarter of the device dimension.
 
 /* [openGrid Settings] */
 Tile_Size = 28;
@@ -73,6 +74,8 @@ side_cut_offset_to_top = 0.8; //0.1
 $fa = 0.1;
 $fs = 0.1;
 eps = 0.005;
+actual_cap_length = min(Max_Cap_Length, Device_Length / 4);
+actual_cap_width = min(Max_Cap_Length, Device_Width / 4);
 
 snap_body_corner_outer_diagonal = 2.7 + 1 / sqrt(2);
 snap_body_corner_chamfer = snap_body_corner_outer_diagonal * sqrt(2);
@@ -182,7 +185,7 @@ module cap() {
   y_pos = (Device_Width * 3 / 8) + Wall_Depth + Device_Tolerance;
   translate([x_pos, y_pos, Snap_Thickness + Base_Thickness + Base_Clearance + Device_Height + Device_Tolerance]) {
     cuboid(
-      [Device_Length / 4, Device_Width / 4, Wall_Depth],
+      [actual_cap_length, actual_cap_width, Wall_Depth],
       rounding=Outside_Vertical_Corner_Rounding,
       edges="Z",
       anchor=BOTTOM
