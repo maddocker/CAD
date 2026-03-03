@@ -32,7 +32,8 @@ Base_Thickness = 2.6; //0.1
 // Gap around the base platform; gives room between grid tiles.
 Base_Clearance = 0.2; //0.1
 Device_Tolerance = 0.8; //0.1
-Max_Cap_Length = 35; // [10:0.1:75] The maximum length of the cap piece covering the top of the device. The actual length along each axis (X/Y) will be the lesser value between this and a quarter of the device dimension.
+// The maximum length of the cap piece covering the top of the device. The actual length along each axis (X/Y) will be the lesser value between this and a quarter of the device dimension.
+Max_Cap_Length = 35.0; // [10:0.1:75]
 
 /* [openGrid Settings] */
 Tile_Size = 28;
@@ -181,8 +182,8 @@ module wall() {
 }
 
 module cap() {
-  x_pos = (Device_Length * 3 / 8) + Wall_Depth + Device_Tolerance;
-  y_pos = (Device_Width * 3 / 8) + Wall_Depth + Device_Tolerance;
+  x_pos = (Device_Length / 2 - actual_cap_length / 2) + Wall_Depth + Device_Tolerance;
+  y_pos = (Device_Width / 2 - actual_cap_width / 2) + Wall_Depth + Device_Tolerance;
   translate([x_pos, y_pos, Snap_Thickness + Base_Thickness + Base_Clearance + Device_Height + Device_Tolerance]) {
     cuboid(
       [actual_cap_length, actual_cap_width, Wall_Depth],
